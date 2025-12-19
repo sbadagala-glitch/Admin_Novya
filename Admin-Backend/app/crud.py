@@ -2,6 +2,7 @@
 # from . import models, schemas, auth
 # from datetime import datetime, timedelta
 # import secrets
+# from sqlalchemy import func, desc
 
 # def get_admin_user_by_email(db: Session, email: str):
 #     return db.query(models.AdminUser).filter(models.AdminUser.email == email).first()
@@ -15,7 +16,6 @@
 #     return user
 
 # def create_admin_user(db: Session, user: schemas.AdminUserCreate):
-#     # Check if user already exists
 #     db_user = get_admin_user_by_email(db, user.email)
 #     if db_user:
 #         return None
@@ -42,7 +42,6 @@
 #     return user
 
 # def create_password_reset_token(db: Session, email: str):
-#     # Delete any existing tokens for this email
 #     db.query(models.PasswordResetToken).filter(
 #         models.PasswordResetToken.email == email
 #     ).delete()
@@ -90,48 +89,66 @@
 #     db.commit()
 #     return user
 
+
+
 # # --------------------------
-# # NEW: ContactRequest CRUD helpers
+# # ContactRequest CRUD helpers
 # # --------------------------
 # def get_contact_requests(db: Session, skip: int = 0, limit: int = 100):
-#     """
-#     Returns a list of ContactRequest rows from the database (Django created table).
-#     """
-#     return db.query(models.ContactRequest).order_by(models.ContactRequest.created_at.desc()).offset(skip).limit(limit).all()
+#     return db.query(models.ContactRequest).order_by(
+#         models.ContactRequest.created_at.desc()
+#     ).offset(skip).limit(limit).all()
 
 # def get_contact_request(db: Session, request_id: int):
-#     return db.query(models.ContactRequest).filter(models.ContactRequest.id == request_id).first()
+#     return db.query(models.ContactRequest).filter(
+#         models.ContactRequest.id == request_id
+#     ).first()
+
+
 # # --------------------------
-# # NOVYA USER CRUD HELPERS
+# # USER CRUD helpers (novya.users)
 # # --------------------------
-# from sqlalchemy import func
-# from datetime import datetime, timedelta
+# def get_users(db: Session, skip: int = 0, limit: int = 100):
+#     # order by createdat desc — if createdat is NULL, DB will place it accordingly
+#     return db.query(models.User).order_by(
+#         models.User.createdat.desc()
+#     ).offset(skip).limit(limit).all()
 
-# def get_all_users(db: Session, skip: int = 0, limit: int = 100):
-#     """
-#     Returns list of NovyaUser rows
-#     """
-#     return db.query(models.NovyaUser).order_by(models.NovyaUser.createdat.desc()).offset(skip).limit(limit).all()
 
-# def get_latest_users(db: Session, limit: int = 3):
-#     """
-#     Returns the latest `limit` NovyaUser rows ordered by createdat desc
-#     """
-#     return db.query(models.NovyaUser).order_by(models.NovyaUser.createdat.desc()).limit(limit).all()
+# def get_total_users_count(db: Session):
+#     # Must use userid instead of id (novya.users uses userid)
+#     return db.query(func.count(models.User.userid)).scalar() or 0
 
-# def get_users_count(db: Session):
-#     """
-#     Returns total number of users
-#     """
-#     return db.query(func.count(models.NovyaUser.userid)).scalar() or 0
 
-# def get_new_registrations_count(db: Session, days: int = 30):
-#     """
-#     Returns number of users created in the last `days` days based on createdat column
-#     """
-#     since = datetime.utcnow() - timedelta(days=days)
-#     # Some DBs store createdat without timezone; adapt as needed
-#     return db.query(func.count(models.NovyaUser.userid)).filter(models.NovyaUser.createdat >= since).scalar() or 0
+# def get_recent_users(db: Session, days: int = 30, limit: int = 3):
+#     cutoff = datetime.utcnow() - timedelta(days=days)
+
+#     # Exclude rows where createdat is NULL and filter on cutoff
+#     return (
+#         db.query(models.User)
+#         .filter(models.User.createdat != None)
+#         .filter(models.User.createdat >= cutoff)
+#         .order_by(models.User.createdat.desc())
+#         .limit(limit)
+#         .all()
+#     )
+# def create_student_enquiry(db: Session, student_id: int, name: str, email: str, issue: str):
+#     enquiry = models.StudentEnquiry(
+#         student_id=student_id,
+#         name=name,
+#         email=email,
+#         main_issue=issue
+#     )
+#     db.add(enquiry)
+#     db.commit()
+#     db.refresh(enquiry)
+#     return enquiry
+
+
+# def get_student_enquiries(db: Session):
+#     return db.query(models.StudentEnquiry).order_by(models.StudentEnquiry.id.desc()).all()
+
+
 from sqlalchemy.orm import Session
 from . import models, schemas, auth
 from datetime import datetime, timedelta
@@ -266,3 +283,24 @@ def get_recent_users(db: Session, days: int = 30, limit: int = 3):
         .limit(limit)
         .all()
     )
+
+def create_student_enquiry(db: Session, student_id: int, name: str, email: str, issue: str, chat_history: list = None):
+    """
+    Creates a StudentEnquiry record.
+    chat_history is optional (list of {role, content} objects). Backwards compatible.
+    """
+    enquiry = models.StudentEnquiry(
+        student_id=student_id,
+        name=name,
+        email=email,
+        main_issue=issue,
+        chat_history=chat_history
+    )
+    db.add(enquiry)
+    db.commit()
+    db.refresh(enquiry)
+    return enquiry
+
+
+def get_student_enquiries(db: Session):
+    return db.query(models.StudentEnquiry).order_by(models.StudentEnquiry.id.desc()).all()

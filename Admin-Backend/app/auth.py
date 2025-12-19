@@ -7,10 +7,15 @@ from .config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# keep the same tokenUrl (your frontend uses /api/auth/login)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain_password, hashed_password):
+    # bcrypt only supports up to 72 bytes safely
+    if plain_password:
+        plain_password = plain_password[:72]
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -32,9 +37,17 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 def verify_token(token: str = Depends(oauth2_scheme)):
     """
     Correctly extracts and validates JWT token.
-    Frontend sends "Bearer <token>", FastAPI extracts only "<token>".
-    This fixes 422 errors on /api/admin/users and /summary.
+    Frontend sends "Authorization: Bearer <token>", FastAPI's oauth2_scheme extracts "<token>".
+    This function decodes and validates the JWT and returns the payload dict on success.
+
+    Usage: token_payload = Depends(verify_token)
     """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         # Decode JWT
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -42,15 +55,10 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         # REQUIRED — ensure "sub" exists
         email: str = payload.get("sub")
         if email is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token missing subject",
-            )
+            raise credentials_exception
 
+        # Optionally you can validate other claims here (exp is already checked by jose.decode)
         return payload
 
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        raise credentials_exception

@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON
 from sqlalchemy.sql import func
 from .database import Base
 from datetime import datetime
@@ -60,7 +60,8 @@ class ParentContactRequest(Base):
     phone_number = Column(String(20), nullable=False)
     email = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    # Use DB server default timestamp for consistency
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class TeacherContactRequest(Base):
@@ -73,7 +74,7 @@ class TeacherContactRequest(Base):
     phone_number = Column(String(20))
     message = Column(Text)
     status = Column(String(50), default="pending")
-    created_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 # ----------------------------------------------
@@ -99,3 +100,18 @@ class User(Base):
 
     def __repr__(self):
         return f"<User {self.userid} {self.email}>"
+    
+
+class StudentEnquiry(Base):
+    __tablename__ = "student_enquiries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer)
+    name = Column(String(255))
+    email = Column(String(255))
+    main_issue = Column(Text)
+    # Store full chat if you want later; JSON maps nicely to Postgres json/jsonb
+    chat_history = Column(JSON, nullable=True)
+    status = Column(String(20), default="New Request")
+    type = Column(String(50), default="student-support")
+    created_at = Column(DateTime, server_default=func.now())

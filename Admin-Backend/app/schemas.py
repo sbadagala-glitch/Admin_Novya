@@ -168,3 +168,28 @@ class ChangePassword(BaseModel):
     new_password: str
 
     model_config = {"from_attributes": True}
+
+
+# -----------------------
+# STUDENT ENQUIRY SCHEMAS
+# -----------------------
+class StudentEnquiryCreate(BaseModel):
+    student_id: int
+    name: str
+    email: str
+    chat_history: list  # chatbot chat messages
+
+    model_config = {"from_attributes": True}
+
+
+class StudentEnquiryOut(BaseModel):
+    id: int
+    student_id: int
+    name: str
+    email: str
+    main_issue: str
+    status: str
+    type: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
