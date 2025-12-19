@@ -1,0 +1,58 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* ===============================
+   GLOBAL DASHBOARD LAYOUT
+   =============================== */
+
+.dashboard-page {
+  padding: 24px;
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-cards {
+  margin-bottom: 24px;
+}
+
+.dashboard-card {
+  height: 100%;
+  text-align: center;
+}
+
+.dashboard-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Charts */
+.dashboard-chart {
+  margin-bottom: 24px;
+}
+
+.dashboard-chart .card-body {
+  height: 350px;
+}
+
+/* Tables */
+.dashboard-table {
+  margin-top: 16px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
